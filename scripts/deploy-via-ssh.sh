@@ -1,43 +1,36 @@
 #!/usr/bin/env bash
-# Autor: desenvolvimentos
-# Data: 2026-05-14
-# Propósito: copiar este pacote (com dist/ pré-compilado localmente) para o servidor por SSH.
-#            Por defeito envia o dist/ local — sem build remoto. Mais simples e sem problemas de
-#            dependências nativas do @n8n/node-cli no servidor.
+# Copies this package (with pre-compiled dist/) to the server via SSH.
+# By default sends the local dist/ — no remote build needed.
 #
-# Uso (o primeiro argumento é o destino SSH do rsync, igual a `ssh` — hostname OU IP):
-#   ./scripts/deploy-via-ssh.sh ubuntu@192.168.1.50:/home/ubuntu/n8n/custom-extensions/n8n-nodes-oci-generative-ai
-#   ./scripts/deploy-via-ssh.sh ubuntu@vps.exemplo.com:/home/ubuntu/n8n/custom-extensions/n8n-nodes-oci-generative-ai
+# Usage:
+#   ./scripts/deploy-via-ssh.sh ubuntu@YOUR_VPS_IP:/home/ubuntu/n8n/custom-extensions/n8n-nodes-oci-generative-ai
 #
-# ANTES de correr: certifica-te de que fizeste build local:
-#   cd /path/to/n8n-nodes-oci-generative-ai && npm ci && npm run build
+# Build locally first:
+#   npm ci && npm run build
 #
-# Sugestão: manter o pacote dentro da pasta do projeto n8n no servidor (ex.: ~/n8n/custom-extensions/...)
-# para volumes no docker-compose ficarem relativos a ~/n8n.
-#
-# Opções:
-#   REMOTE_BUILD=1      — em vez de enviar dist/, compila no servidor (host npm). Requer Node/npm no servidor.
-#   USE_DOCKER_BUILD=1  — compila no servidor dentro de Docker (instala python3/make/g++ para deps nativas).
-#   DOCKER_BUILD_IMAGE=  — imagem Docker (por defeito node:22-bookworm-slim).
-#   DEPLOY_SSH_IDENTITY_FILE=/caminho/chave  — passa `-i` ao ssh/rsync.
-#   SSHPASS=<senha>     — autentica por password via `sshpass`.
-#   RSYNC_DELETE=1      — usa --delete no rsync (espelho exacto).
+# Optional env:
+#   REMOTE_BUILD=1          — build on the server using the host npm instead of sending dist/
+#   USE_DOCKER_BUILD=1      — build on the server inside Docker (installs python3/make/g++ for native deps)
+#   DOCKER_BUILD_IMAGE=     — Docker image to use (default: node:22-bookworm-slim)
+#   DEPLOY_SSH_IDENTITY_FILE=/path/to/key  — passes -i to ssh/rsync
+#   SSHPASS=<password>      — authenticate via password using sshpass
+#   RSYNC_DELETE=1          — use --delete in rsync (exact mirror)
 
 set -euo pipefail
 IFS=$'\n\t'
 
-readonly DEPLOY_TARGET="${1:?Uso: $0 utilizador@IP_OU_HOST:/caminho/absoluto/para/n8n-nodes-oci-generative-ai (ex.: ubuntu@203.0.113.10:/home/ubuntu/n8n/custom-extensions/n8n-nodes-oci-generative-ai)}"
+readonly DEPLOY_TARGET="${1:?Usage: $0 user@HOST_OR_IP:/absolute/path/to/n8n-nodes-oci-generative-ai}"
 
 readonly REMOTE="${DEPLOY_TARGET%%:*}"
 readonly REMOTE_DIR="${DEPLOY_TARGET#*:}"
 
 if [[ "${DEPLOY_TARGET}" != *:* ]]; then
-	echo "Erro: use utilizador@host:/caminho ou utilizador@IP:/caminho (caminho absoluto no servidor)." >&2
+	echo "Error: use user@host:/path or user@IP:/path (absolute path on the server)." >&2
 	exit 1
 fi
 
 if [[ "${REMOTE_DIR}" != /* ]]; then
-	echo "Erro: o caminho remoto tem de ser absoluto (começar por /)." >&2
+	echo "Error: remote path must be absolute (start with /)." >&2
 	exit 1
 fi
 
@@ -48,7 +41,7 @@ readonly SSH_OPTS_BASE=(-o StrictHostKeyChecking=accept-new)
 SSH_OPTS=("${SSH_OPTS_BASE[@]}")
 if [[ -n "${DEPLOY_SSH_IDENTITY_FILE:-}" ]]; then
 	if [[ ! -r "${DEPLOY_SSH_IDENTITY_FILE}" ]]; then
-		echo "Erro: DEPLOY_SSH_IDENTITY_FILE não legível: ${DEPLOY_SSH_IDENTITY_FILE}" >&2
+		echo "Error: DEPLOY_SSH_IDENTITY_FILE not readable: ${DEPLOY_SSH_IDENTITY_FILE}" >&2
 		exit 1
 	fi
 	SSH_OPTS+=(-i "${DEPLOY_SSH_IDENTITY_FILE}")
@@ -59,7 +52,7 @@ _ssh_for_rsync=${_ssh_for_rsync%% }
 
 if [[ -n "${SSHPASS:-}" ]]; then
 	if ! command -v sshpass >/dev/null 2>&1; then
-		echo "Erro: SSHPASS definido mas \`sshpass\` não está instalado. Instale: sudo apt-get install -y sshpass" >&2
+		echo "Error: SSHPASS is set but sshpass is not installed. Install with: sudo apt-get install -y sshpass" >&2
 		exit 1
 	fi
 	export SSHPASS
@@ -71,9 +64,8 @@ else
 fi
 
 sync_files_with_dist() {
-	# Envia tudo incluindo dist/ pré-compilado — sem build remoto.
 	if [[ ! -f "${PACKAGE_ROOT}/dist/nodes/LmChatOciGenAi/LmChatOciGenAi.node.js" ]]; then
-		echo "Erro: dist/ não encontrado ou incompleto. Corre localmente: npm ci && npm run build" >&2
+		echo "Error: dist/ not found or incomplete. Run locally: npm ci && npm run build" >&2
 		exit 1
 	fi
 	"${SSH_CMD[@]}" "${REMOTE}" "mkdir -p '${REMOTE_DIR}'"
@@ -116,20 +108,20 @@ remote_build_docker_node() {
 
 main() {
 	if [[ "${USE_DOCKER_BUILD:-0}" == "1" ]]; then
-		echo "Modo: build remoto Docker..."
+		echo "Mode: remote Docker build..."
 		sync_files_without_dist
 		remote_build_docker_node
 	elif [[ "${REMOTE_BUILD:-0}" == "1" ]]; then
-		echo "Modo: build remoto host npm..."
+		echo "Mode: remote host npm build..."
 		sync_files_without_dist
 		remote_build_host_npm
 	else
-		echo "Modo: envio de dist/ pré-compilado local (padrão)..."
+		echo "Mode: sending pre-compiled dist/ (default)..."
 		sync_files_with_dist
 	fi
-	echo "Feito. Caminho no servidor: ${REMOTE_DIR}"
-	echo "Monte esse caminho no contentor e defina N8N_CUSTOM_EXTENSIONS (ver deploy/DOCKER-COMPOSE-SNIPPET.txt)."
-	echo "Para enviar merge compose e subir stack: ./scripts/push-compose-merge-and-up.sh"
+	echo "Done. Path on server: ${REMOTE_DIR}"
+	echo "Mount that path in the container and set N8N_CUSTOM_EXTENSIONS (see deploy/DEPLOY.md)."
+	echo "To push compose merge files and start the stack: ./scripts/push-compose-merge-and-up.sh"
 }
 
 main "$@"

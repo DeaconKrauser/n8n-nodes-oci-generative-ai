@@ -6,9 +6,6 @@ import type {
 	INodeProperties,
 } from "n8n-workflow";
 
-/**
- * Credencial HTTP Bearer para a API OpenAI-compatible de inferência OCI Generative AI.
- */
 export class OciGenerativeAiApi implements ICredentialType {
 	name = "ociGenerativeAiApi";
 
@@ -29,7 +26,7 @@ export class OciGenerativeAiApi implements ICredentialType {
 			placeholder:
 				"https://inference.generativeai.REGION.oci.oraclecloud.com/20231130/actions",
 			description:
-				"URL até o prefixo …/actions (sem barra final). O nó chama POST {baseUrl}/v1/chat/completions.",
+				"Endpoint up to the …/actions prefix (no trailing slash). The node calls POST {baseUrl}/v1/chat/completions.",
 			required: true,
 		},
 		{
@@ -41,14 +38,14 @@ export class OciGenerativeAiApi implements ICredentialType {
 			},
 			default: "",
 			required: true,
-			description: "Token enviado em Authorization: Bearer …",
+			description: "Token sent in Authorization: Bearer …",
 		},
 		{
 			displayName: "Test Model",
 			name: "testModel",
 			type: "string",
 			default: "meta.llama-3.1-8b-instruct",
-			description: "Modelo usado apenas para testar a conexão da credencial. Usa um modelo disponível na tua região (ex.: meta.llama-3.1-8b-instruct para São Paulo, google.gemini-2.5-flash para Chicago).",
+			description: "Model used only for the credential connection test. Use a model available in your region (e.g. meta.llama-3.1-8b-instruct for São Paulo, google.gemini-2.5-flash for Chicago).",
 		},
 	];
 

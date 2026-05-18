@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# Autor: desenvolvimentos
-# Data: 2026-05-13
-# Propósito: após `npm run build` e `npm link` na raiz deste pacote, liga o pacote ao diretório
-#            de community nodes do n8n self-hosted (por defeito ~/.n8n/custom).
+# Links the built package into the n8n self-hosted custom nodes directory.
+# Run after: npm run build && npm link
+#
+# Usage:
+#   ./scripts/install-to-n8n-custom.sh
+#
+# Optional env:
+#   N8N_CUSTOM_DIR=~/.n8n/custom   (default)
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -12,7 +16,7 @@ readonly N8N_CUSTOM_DIR="${N8N_CUSTOM_DIR:-${HOME}/.n8n/custom}"
 
 main() {
 	if ! command -v npm >/dev/null 2>&1; then
-		echo "Erro: npm não está no PATH." >&2
+		echo "Error: npm not found in PATH." >&2
 		exit 1
 	fi
 
@@ -25,9 +29,9 @@ main() {
 
 	npm link "${PACKAGE_NAME}"
 
-	echo "Ligado: ${PACKAGE_NAME} -> ${N8N_CUSTOM_DIR}"
-	echo "Reinicie o n8n e procure no editor por \"Oracle OCI\" ou \"OCI GenAI\"."
-	echo "Se usar Docker: o contentor precisa de ver o mesmo HOME ou definir N8N_CUSTOM_EXTENSIONS e montar esse caminho."
+	echo "Linked: ${PACKAGE_NAME} -> ${N8N_CUSTOM_DIR}"
+	echo "Restart n8n and search for \"Oracle OCI\" or \"OCI GenAI\" in the editor."
+	echo "If using Docker: the container must share the same HOME or use N8N_CUSTOM_EXTENSIONS with a mounted path."
 }
 
 main "$@"

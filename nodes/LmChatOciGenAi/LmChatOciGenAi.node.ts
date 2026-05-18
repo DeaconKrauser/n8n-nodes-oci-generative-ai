@@ -8,9 +8,6 @@ import {
 
 import { ChatOciGenAi } from "./ChatOciGenAi";
 
-/**
- * Sub-nó de language model para ligar ao AI Agent / chains LangChain no n8n.
- */
 export class LmChatOciGenAi implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: "Oracle OCI Generative AI Chat Model",
@@ -18,7 +15,7 @@ export class LmChatOciGenAi implements INodeType {
 		icon: "file:ociGenAi.svg",
 		group: ["transform"],
 		version: 1,
-		description: "Modelo de chat via OCI Generative AI (API compatível com OpenAI)",
+		description: "Chat model via OCI Generative AI (OpenAI-compatible API)",
 		defaults: {
 			name: "Oracle OCI GenAI Chat Model",
 		},
@@ -32,7 +29,7 @@ export class LmChatOciGenAi implements INodeType {
 			resources: {
 				primaryDocumentation: [
 					{
-						url: "https://github.com/",
+						url: "https://github.com/DeaconKrauser/n8n-n8n-nodes-oci-generative-ai",
 					},
 				],
 			},
@@ -48,8 +45,7 @@ export class LmChatOciGenAi implements INodeType {
 		],
 		properties: [
 			{
-				displayName:
-					"Ligue a saída deste nó a um AI Agent (ou chain) como modelo de linguagem.",
+				displayName: "Connect the output of this node to an AI Agent or chain as a language model.",
 				name: "usageHint",
 				type: "notice",
 				default: "",
@@ -58,8 +54,8 @@ export class LmChatOciGenAi implements INodeType {
 				displayName: "Model",
 				name: "model",
 				type: "string",
-				default: "google.gemini-2.5-flash",
-				description: "Identificador do modelo na OCI (ex.: google.gemini-2.5-flash)",
+				default: "meta.llama-3.1-8b-instruct",
+				description: "Model ID on OCI (e.g. meta.llama-3.1-70b-instruct, google.gemini-2.5-flash)",
 			},
 			{
 				displayName: "Options",

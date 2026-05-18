@@ -16,9 +16,6 @@ import { type ChatGeneration, ChatGenerationChunk, type ChatResult } from "@lang
 import type { Runnable } from "@langchain/core/runnables";
 import { convertToOpenAITool } from "@langchain/core/utils/function_calling";
 
-/**
- * Parâmetros do modelo de chat OCI (corpo alinhado à API OpenAI-compatible).
- */
 export type ChatOciGenAiInput = BaseChatModelParams & {
 	baseUrl: string;
 	bearerToken: string;
@@ -69,32 +66,19 @@ function normalizeBaseUrl(baseUrl: string): string {
 
 function messageToRole(message: BaseMessage): string {
 	const messageType = message.getType();
-	if (messageType === "human") {
-		return "user";
-	}
-	if (messageType === "ai") {
-		return "assistant";
-	}
-	if (messageType === "system") {
-		return "system";
-	}
-	if (messageType === "tool") {
-		return "tool";
-	}
+	if (messageType === "human") return "user";
+	if (messageType === "ai") return "assistant";
+	if (messageType === "system") return "system";
+	if (messageType === "tool") return "tool";
 	return "user";
 }
 
 function messageToText(message: BaseMessage): string {
 	const { content } = message;
-	if (typeof content === "string") {
-		return content;
-	}
+	if (typeof content === "string") return content;
 	return JSON.stringify(content);
 }
 
-/**
- * Converte mensagens LangChain para o formato esperado pelo endpoint chat/completions (incl. tool / assistant com tool_calls).
- */
 function baseMessageToOpenAI(message: BaseMessage): Record<string, unknown> {
 	const kind = message.getType();
 	if (kind === "ai") {
@@ -134,32 +118,20 @@ function baseMessageToOpenAI(message: BaseMessage): Record<string, unknown> {
 	};
 }
 
-/**
- * Opções de invocação incluindo tools (após bindTools); alinha com o que withConfig persiste no LangChain.
- */
 export type ChatOciGenAiCallOptions = BaseChatModelCallOptions & {
 	tools?: unknown[];
 	tool_choice?: unknown;
 };
 
-/**
- * Cliente LangChain para OCI Generative AI (OpenAI-compatible chat/completions), com bindTools para o AI Agent (Tools Agent) do n8n.
- */
 export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 	lc_namespace = ["n8n_nodes_oci_generative_ai", "chat_models"];
 
 	baseUrl: string;
-
 	bearerToken: string;
-
 	model: string;
-
 	temperature?: number;
-
 	maxTokens?: number;
-
 	topP?: number;
-
 	responseFormat: "default" | "json_object";
 
 	constructor(fields: ChatOciGenAiInput) {
@@ -177,9 +149,7 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 		return "oci_generative_ai";
 	}
 
-	/**
-	 * Expõe tool calling ao agente LangChain / n8n Tools Agent (validação exige esta função).
-	 */
+	// Required by the LangChain Tools Agent — exposes tool calling capability
 	bindTools(
 		tools: BindToolsInput[],
 		kwargs?: Partial<ChatOciGenAiCallOptions>,
@@ -192,9 +162,6 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 		});
 	}
 
-	/**
-	 * Chamada não-streaming à API OCI.
-	 */
 	async _generate(
 		messages: BaseMessage[],
 		parsedOptions: this["ParsedCallOptions"],
@@ -233,7 +200,7 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 			parsed = JSON.parse(rawText) as OciChatCompletionsResponse;
 		} catch {
 			throw new Error(
-				`Resposta não-JSON da OCI Generative AI (HTTP ${String(response.status)}): ${rawText.slice(0, 500)}`,
+				`Non-JSON response from OCI Generative AI (HTTP ${String(response.status)}): ${rawText.slice(0, 500)}`,
 			);
 		}
 
@@ -244,7 +211,7 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 
 		const rawMsg = parsed.choices?.[0]?.message;
 		if (!rawMsg) {
-			throw new Error(`Resposta sem choices[0].message: ${rawText.slice(0, 500)}`);
+			throw new Error(`Response missing choices[0].message: ${rawText.slice(0, 500)}`);
 		}
 
 		if (rawMsg.tool_calls && rawMsg.tool_calls.length > 0) {
@@ -264,40 +231,23 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 			});
 			const content =
 				rawMsg.content === null || rawMsg.content === undefined ? "" : String(rawMsg.content);
-			const message = new AIMessage({
-				content,
-				tool_calls,
-			});
+			const message = new AIMessage({ content, tool_calls });
 			return {
-				generations: [
-					{
-						text: content,
-						message,
-					},
-				],
+				generations: [{ text: content, message }],
 			};
 		}
 
 		const text = rawMsg.content;
 		if (text === undefined || text === null) {
-			throw new Error(
-				`Resposta sem content nem tool_calls: ${rawText.slice(0, 500)}`,
-			);
+			throw new Error(`Response missing content and tool_calls: ${rawText.slice(0, 500)}`);
 		}
 
 		const message = new AIMessage(text);
-		const generation: ChatGeneration = {
-			text,
-			message,
-		};
-		return {
-			generations: [generation],
-		};
+		const generation: ChatGeneration = { text, message };
+		return { generations: [generation] };
 	}
 
-	/**
-	 * Streaming mínimo: um chunk (texto ou tool_calls) alinhado ao resultado de _generate.
-	 */
+	// Minimal streaming: yields a single chunk aligned with _generate output
 	async *_streamResponseChunks(
 		messages: BaseMessage[],
 		options: this["ParsedCallOptions"],
@@ -305,9 +255,8 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 	): AsyncGenerator<ChatGenerationChunk> {
 		const result = await this._generate(messages, options, runManager);
 		const first = result.generations[0];
-		if (!first) {
-			return;
-		}
+		if (!first) return;
+
 		const msg = first.message;
 		if (msg.getType() === "ai") {
 			const aiMsg = msg as AIMessage;
@@ -315,14 +264,12 @@ export class ChatOciGenAi extends BaseChatModel<ChatOciGenAiCallOptions> {
 				const content = typeof aiMsg.content === "string" ? aiMsg.content : "";
 				yield new ChatGenerationChunk({
 					text: "",
-					message: new AIMessageChunk({
-						content,
-						tool_calls: aiMsg.tool_calls,
-					}),
+					message: new AIMessageChunk({ content, tool_calls: aiMsg.tool_calls }),
 				});
 				return;
 			}
 		}
+
 		const text = typeof first.text === "string" ? first.text : messageToText(first.message);
 		yield new ChatGenerationChunk({
 			text,

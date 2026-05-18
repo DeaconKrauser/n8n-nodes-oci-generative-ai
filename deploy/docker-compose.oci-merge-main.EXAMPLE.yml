@@ -1,22 +1,20 @@
-# =============================================================================
-# MERGE OPCIONAL — não substitui docker-compose-main.yml.
-# Uso: docker compose -f docker-compose-main.yml -f docker-compose.oci-merge-main.yml up -d
+# Optional merge file — does NOT replace docker-compose-main.yml.
+# Usage: docker compose -f docker-compose-main.yml -f docker-compose.oci-merge-main.yml up -d
 #
-# OBRIGATÓRIO: o nome do serviço em "services:" tem de bater com o teu compose.
-# Confirma com:  docker compose -f docker-compose-main.yml config --services
-# Ex.: se `config --services` mostra "n8n_main", a chave abaixo é n8n_main:.
-# NÃO uses "n8n:" a menos que o teu compose principal defina mesmo um serviço "n8n"
-# com image — senão o merge cria um serviço sem imagem e o Compose falha.
-# =============================================================================
-# Volume /home/ubuntu/n8n/data -> /home/node/.n8n:
-#   partilha dados (community nodes em nodes/node_modules, config, etc.) entre
-#   main e worker. Sem isto, node_modules não persiste e aparece "Unrecognized node type".
-#   Criar no host: mkdir -p /home/ubuntu/n8n/data && sudo chown -R 1000:1000 /home/ubuntu/n8n/data
-# =============================================================================
+# IMPORTANT: the service name under "services:" must match your compose.
+# Check with: docker compose -f docker-compose-main.yml config --services
+# If it returns "n8n_main", use n8n_main: below. Never use "n8n:" unless your
+# main compose defines a service named "n8n" with an image — otherwise Compose
+# will fail with "service has neither an image nor a build context".
+#
+# The /home/ubuntu/n8n/data volume shares n8n data (community nodes, config, etc.)
+# between main and worker. Without it, node_modules won't persist and you'll get
+# "Unrecognized node type" errors.
+# Create on host: mkdir -p /home/ubuntu/n8n/data && sudo chown -R 1000:1000 /home/ubuntu/n8n/data
 services:
   n8n_main:
     environment:
-      # Caminho *dentro* do contentor, visível pelo utilizador "node" (imagem n8nio/n8n).
+      # Path inside the container, visible to the "node" user (n8nio/n8n image)
       N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-oci-generative-ai
     volumes:
       - /home/ubuntu/n8n/data:/home/node/.n8n
