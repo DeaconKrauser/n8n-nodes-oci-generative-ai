@@ -1,0 +1,22 @@
+# =============================================================================
+# MERGE OPCIONAL — não substitui docker-compose-worker.yml.
+# Uso (tenta primeiro; se der erro "service n8n has neither an image", vê ACTIVAR-NO-SERVIDOR.txt):
+#   docker compose -f docker-compose-worker.yml -f docker-compose.oci-merge-worker.yml up -d
+# Em alguns setups o worker.yml é um fragmento e tem de ir *junto* do main (três -f).
+#
+# Confirma com:  docker compose -f docker-compose-worker.yml config --services
+# Se o serviço se chamar n8n_worker, usa a chave abaixo; senão ajusta ao output do comando.
+# Se não tiveres worker n8n a correr, ignora este ficheiro.
+#
+# NÃO uses a chave "n8n:" aqui — tem de coincidir com o nome do serviço no teu
+# worker compose (ex. n8n_worker). "n8n:" cria um serviço novo sem imagem.
+# =============================================================================
+# Mesmo bind de dados que no main (obrigatório em queue mode). Ver merge-main.
+# =============================================================================
+services:
+  n8n_worker:
+    environment:
+      N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-oci-generative-ai
+    volumes:
+      - /home/ubuntu/n8n/data:/home/node/.n8n
+      - /home/ubuntu/n8n/custom-extensions/n8n-nodes-oci-generative-ai:/home/node/.n8n/custom/n8n-nodes-oci-generative-ai:rw

@@ -1,0 +1,55 @@
+{
+	"name": "n8n-nodes-oci-generative-ai",
+	"version": "0.1.4",
+	"description": "n8n community node: Oracle OCI Generative AI (OpenAI-compatible chat) para AI Agent / chains",
+	"license": "MIT",
+	"keywords": [
+		"n8n-community-node-package",
+		"oracle",
+		"oci",
+		"generative-ai",
+		"langchain"
+	],
+	"author": {
+		"name": "deaconkrauser"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/deaconkrauser/n8n-nodes-oci-generative-ai"
+	},
+	"main": "index.js",
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"prepublishOnly": "n8n-node prerelease",
+		"link:n8n": "bash scripts/install-to-n8n-custom.sh"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": false,
+		"credentials": [
+			"dist/credentials/OciGenerativeAiApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/LmChatOciGenAi/LmChatOciGenAi.node.js"
+		]
+	},
+	"dependencies": {
+		"@langchain/core": "^0.3.45"
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "^0.17.0",
+		"eslint": "^9.15.0",
+		"prettier": "^3.4.0",
+		"typescript": "^5.6.3"
+	},
+	"peerDependencies": {
+		"n8n-workflow": ">=1.0.0"
+	}
+}
